@@ -1,10 +1,14 @@
 import requests
 from bs4 import BeautifulSoup
 import time
+import datetime
+
 
 use_proxies = True
 proxy_list = []
 wait = 2
+timeout_connect = 1
+timeout_read = 1
 
 def request_url(url):
     global wait
@@ -18,7 +22,15 @@ def request_url(url):
         request_url(url)
 
 def update_proxies():
-    global proxy_list
+    unchecked_proxies = get_proxies()
+    checked_proxies = check_proxies(unchecked_proxies)
+    if (len(checked_proxies) == 0):
+        update_proxies()
+    else:
+        return checked_proxies
+    
+def get_proxies():
+    unchecked_proxies = []
     proxies_page = request_url("http://spys.one/en/anonymous-proxy-list/")
     soup = BeautifulSoup(proxies_page, "lxml")
     legend_code = soup.find("script", attrs={"type": "text/javascript"}).text.split(";")
@@ -32,7 +44,9 @@ def update_proxies():
         legend[code2[0]] = code2[1]
     rows = soup.findAll("tr", attrs={"onmouseover": "this.style.background='#002424'"})
     for row in rows:
-        proxy = row.find("td", attrs={"colspan": "1"}).find("font", attrs={"class": "spy14"}).text
+        proxy_row = row.findAll("td", attrs={"colspan": "1"})
+        proxy = proxy_row[0].find("font", attrs={"class": "spy14"}).text
+        proxy_type = proxy_row[1].text
         proxy_code = proxy.split("(")
         port_code = []
         for proxy_code_segment in proxy_code:
@@ -46,7 +60,57 @@ def update_proxies():
             proxy_numbers.append(number)
         proxy_port = "".join(proxy_numbers)
         proxy = str(proxy_ip)+":"+str(proxy_port)
-        proxy_list.append(proxy)
-    print(proxy_list)
+        unchecked_proxies.append([proxy,proxy_type])
+##    for i in unchecked_proxies:
+##        print(i)
+    return unchecked_proxies
+
+def get_ip():
+    status = 0
+    while status != 200:
+        try:
+            url = "http://ip-check.info/?lang=en"
+            req = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
+            html = req.text
+            soup = BeautifulSoup(html, "lxml")
+            current_ip = soup.findAll("script", attrs={"type":"text/javascript"})[3].text.split("'\">")[1].split(r"</a>")[0]
+            status = req.status_code
+        except:
+            pass
+    return current_ip
+
+def check_proxies(unchecked_proxies):
+    global timeout_connect,timeout_read
+    checked_proxies = []
+    
+    current_ip = get_ip()
+    
+    for host in unchecked_proxies:
+        try:
+            proxy = {"https":host[0],"http":host[0]}
+            url = "http://ip-check.info/?lang=en"
+            time1 = datetime.datetime.now()
+            req = requests.get(url, headers={"User-Agent": "fight me"}, proxies=proxy, timeout=(timeout_connect, timeout_read))
+            time2 = datetime.datetime.now()
+            ping = int((time2 - time1).total_seconds() * 1000)
+            html = req.text
+            soup = BeautifulSoup(html, "lxml")
+            ip = soup.findAll("script", attrs={"type":"text/javascript"})[3].text.split("'\">")[1].split(r"</a>")[0]
+            status = req.status_code
+            if ip == host[0].split(":")[0]:
+                print("Working:",ping, status, ip, host[0])
+                checked_proxies.append(host)
+            elif ip == current_ip:
+                print("Not Working:",host[0])
+            else:
+                print("MultiLayered Working:",ping, status, ip, host[0])
+                checked_proxies.append(host)
+        except requests.exceptions. Timeout:
+            print("Timed Out:",host[0])
+        except:
+            print("Not Working Fatal:",host[0])
+    return checked_proxies
+
 if use_proxies == True:
-    update_proxies()
+    proxy_list = update_proxies()
+    print(proxy_list)
