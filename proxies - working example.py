@@ -15,13 +15,14 @@ proxy_loops = 0
 def request_url(url,headers=None):
     global wait,proxy_counter,use_proxies,proxy_list,proxy_loops
     try:
-        if proxy_loops >= 1:
+        if proxy_loops >= 50:
             if use_proxies == True:
                 print("Updating Proxies")
                 proxy_list = update_proxies()
                 print(proxy_list)
             else:
                 proxy_list = None
+            proxy_loops = 0
         if proxy_counter > (len(proxy_list)-1):
             proxy_counter = 0
             proxy_loops += 1
