@@ -14,8 +14,9 @@ proxy_loops = 0
 
 def request_url(url,headers=None):
     global wait,proxy_counter,use_proxies,proxy_list,proxy_loops
+    maximum_loops = 50
     try:
-        if proxy_loops >= 50:
+        if proxy_loops >= maximum_loops:
             if use_proxies == True:
                 print("Updating Proxies")
                 proxy_list = update_proxies()
@@ -32,7 +33,7 @@ def request_url(url,headers=None):
         if use_proxies == True:
             #proxy_ip = proxy_list[randint(0,len(proxy_list)-1)][0]
             proxy_ip = proxy_list[proxy_counter][0]
-            print(proxy_counter,proxy_loops)
+            print("Counter: ("+str(proxy_counter)+"/"+str(len(proxy_list)-1)+")","Loop: ("+str(proxy_loops)+"/"+str(maximum_loops)+")")
             proxy = {"https":proxy_ip,"http":proxy_ip}
             print("Proxy Ip:",proxy_ip)
             proxy_counter += 1 #track position in the proxy list
@@ -56,10 +57,15 @@ def request_url(url,headers=None):
         if data == None:
             print("Page returned nothing! Reloading")
             request_url(url,headers)
-        return data
+        elif data == "None":
+            print("Page returned nothing string! Reloading")
+            request_url(url,headers)
+        else:
+            return data
     except Exception as e:
         print("Page failed to load or Request timed out! Reloading",e)
-        time.sleep(wait)
+        if use_proxies != True:
+            time.sleep(wait)
         request_url(url,headers)
 
 def update_proxies():
