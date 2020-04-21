@@ -9,7 +9,7 @@ use_proxies = True
 proxy_list = []
 wait = 2
 timeout_connect = 5
-timeout_read = 5
+timeout_read = 2
 proxy_loops = 0
 
 def request_url(url,headers=None,timeout=(timeout_connect, timeout_read)):
@@ -45,16 +45,16 @@ def request_url(url,headers=None,timeout=(timeout_connect, timeout_read)):
             req = requests.get(url, headers=headers, proxies=proxy, timeout=timeout)
         else:
             req = requests.get(url, headers=headers, timeout=timeout)
-        if req == None:
-            print("Page returned nothing! Reloading")
-            request_url(url,headers)
-        else:
+        if req:
             return req
+        else:
+            print("Page returned nothing! Reloading")
+            return request_url(url,headers,timeout)
     except Exception as e:
         print("Page failed to load or Request timed out! Reloading",e)
-        if use_proxies != True:
+        if not use_proxies:
             time.sleep(wait)
-        request_url(url,headers)
+        return request_url(url,headers,timeout)
 
 def update_proxies():
     unchecked_proxies = get_proxies()
@@ -138,9 +138,6 @@ else:
     proxy_list = None
 
 while True:
-    headers = {"Origin": "http://vidstreaming.io",
-               "Referer": "http://vidstreaming.io/",
-               "User-Agent": "notlegitteehee 123/.0"}
-    url = "http://www.youtube.com"
-    res = request_url(url, headers=headers, timeout=(timeout_connect, timeout_read)) # automatically changes proxies after 50 uses
-    print(res.code)
+    url = "http://ip-check.info/?lang=en"
+    res = request_url(url, timeout=(timeout_connect, timeout_read)) # automatically changes proxies after 50 uses of each proxy
+    print(res.status_code)
